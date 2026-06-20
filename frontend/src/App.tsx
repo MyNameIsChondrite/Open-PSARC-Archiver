@@ -11,7 +11,7 @@ interface FileEntry {
   is_zlib: boolean;
 }
 
-interface SngInfo {
+interface CStructInfo {
   encrypted_size?: number;
   iv?: string;
   uncompressed_size?: number;
@@ -29,8 +29,8 @@ interface InspectResult {
   hex_preview: string;
   is_text: boolean;
   text_content: string;
-  is_sng: boolean;
-  sng_info: SngInfo | null;
+  is_c_struct: boolean;
+  c_struct_info: CStructInfo | null;
 }
 
 type Tab = "explorer" | "repacker";
@@ -66,7 +66,7 @@ function App() {
   // Keys — user must bring their own
   const [psarcKey, setPsarcKey] = useState("");
   const [psarcIv, setPsarcIv] = useState("");
-  const [sngKey, setSngKey] = useState("");
+  const [cStructKey, setSngKey] = useState("");
 
   // Explorer state
   const [archivePath, setArchivePath] = useState("");
@@ -80,7 +80,7 @@ function App() {
   const [outputDir, setOutputDir] = useState("");
   const [newPsarcKey, setNewPsarcKey] = useState("");
   const [newPsarcIv, setNewPsarcIv] = useState("");
-  const [newSngKey, setNewSngKey] = useState("");
+  const [newCStructKey, setNewSngKey] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [isRunning, setIsRunning] = useState(false);
@@ -158,7 +158,7 @@ function App() {
         const data = JSON.parse(raw);
         if (data.SLOPSMITH_ARC_KEY) setPsarcKey(data.SLOPSMITH_ARC_KEY);
         if (data.SLOPSMITH_ARC_IV) setPsarcIv(data.SLOPSMITH_ARC_IV);
-        if (data.SLOPSMITH_ZLIB_KEY) setSngKey(data.SLOPSMITH_ZLIB_KEY);
+        if (data.SLOPSMITH_C_STRUCT_KEY) setSngKey(data.SLOPSMITH_C_STRUCT_KEY);
       } catch (e) {
         alert("Failed to load keys: " + e);
       }
@@ -174,7 +174,7 @@ function App() {
       const data = {
         SLOPSMITH_ARC_KEY: psarcKey,
         SLOPSMITH_ARC_IV: psarcIv,
-        SLOPSMITH_ZLIB_KEY: sngKey,
+        SLOPSMITH_C_STRUCT_KEY: cStructKey,
       };
       try {
         await invoke("write_file_contents", {
@@ -222,7 +222,7 @@ function App() {
     try {
       const raw: string = await invoke("inspect_entry", {
         filePath: archivePath, entryName: name,
-        key: psarcKey, iv: psarcIv, sngKey: sngKey,
+        key: psarcKey, iv: psarcIv, cStructKey: cStructKey,
       });
       const data = JSON.parse(raw);
       if (data.type === "inspect_result") {
@@ -269,7 +269,7 @@ function App() {
         const data = JSON.parse(raw);
         if (data.SLOPSMITH_ARC_KEY) setNewPsarcKey(data.SLOPSMITH_ARC_KEY);
         if (data.SLOPSMITH_ARC_IV) setNewPsarcIv(data.SLOPSMITH_ARC_IV);
-        if (data.SLOPSMITH_ZLIB_KEY) setNewSngKey(data.SLOPSMITH_ZLIB_KEY);
+        if (data.SLOPSMITH_C_STRUCT_KEY) setNewSngKey(data.SLOPSMITH_C_STRUCT_KEY);
       } catch (e) {
         alert("Failed to load keys: " + e);
       }
@@ -285,7 +285,7 @@ function App() {
       const data = {
         SLOPSMITH_ARC_KEY: newPsarcKey,
         SLOPSMITH_ARC_IV: newPsarcIv,
-        SLOPSMITH_ZLIB_KEY: newSngKey,
+        SLOPSMITH_C_STRUCT_KEY: newCStructKey,
       };
       try {
         await invoke("write_file_contents", {
@@ -318,12 +318,12 @@ function App() {
 
   const handleRepack = async () => {
     if (!inputDir || !outputDir) { alert("Select input and output directories!"); return; }
-    if (!newPsarcKey || !newPsarcIv || !newSngKey) { alert("Generate or input new keys!"); return; }
+    if (!newPsarcKey || !newPsarcIv || !newCStructKey) { alert("Generate or input new keys!"); return; }
     setIsRunning(true); setLogs([]); setProgress({ current: 0, total: 0 });
     try {
       await invoke("run_repacker", {
         inputDir, outputDir, oldPsarcKey: psarcKey, oldPsarcIv: psarcIv,
-        newPsarcKey, newPsarcIv, oldSngKey: sngKey, newSngKey, overwrite
+        newPsarcKey, newPsarcIv, oldCStructKey: cStructKey, newCStructKey, overwrite
       });
     } catch (error) {
       setIsRunning(false);
@@ -334,7 +334,7 @@ function App() {
   // ── File icon helper ──
   const getIcon = (ext: string) => {
     switch (ext) {
-      case ".sng": return "🔐";
+      case ".c_struct": return "🔐";
       case ".xml": return "📄";
       case ".json": case ".hsan": case ".manifest": return "📋";
       case ".dds": return "🖼️";
@@ -385,8 +385,8 @@ function App() {
           </div>
           <div className="key-input">
             <label>ZLIB KEY</label>
-            <input type="text" value={sngKey} onChange={e => setSngKey(e.target.value)}
-                   placeholder="SLOPSMITH_ZLIB_KEY..." />
+            <input type="text" value={cStructKey} onChange={e => setSngKey(e.target.value)}
+                   placeholder="SLOPSMITH_C_STRUCT_KEY..." />
           </div>
         </div>
       </aside>
@@ -461,29 +461,29 @@ function App() {
                     </div>
                   )}
 
-                  {inspectData.sng_info && (
-                    <div className="inspect-section sng-section">
+                  {inspectData.c_struct_info && (
+                    <div className="inspect-section c-struct-section">
                       <h3>🔐 Deep Zlib Inspection</h3>
-                      {inspectData.sng_info.error ? (
-                        <div className="sng-error">❌ {inspectData.sng_info.error}</div>
+                      {inspectData.c_struct_info.error ? (
+                        <div className="c-struct-error">❌ {inspectData.c_struct_info.error}</div>
                       ) : (
                         <>
                           <div className="meta-row">
                             <span className="meta-label">IV</span>
-                            <span className="meta-value mono">{inspectData.sng_info.iv}</span>
+                            <span className="meta-value mono">{inspectData.c_struct_info.iv}</span>
                           </div>
                           <div className="meta-row">
                             <span className="meta-label">Encrypted</span>
-                            <span className="meta-value">{formatBytes(inspectData.sng_info.encrypted_size || 0)}</span>
+                            <span className="meta-value">{formatBytes(inspectData.c_struct_info.encrypted_size || 0)}</span>
                           </div>
                           <div className="meta-row">
                             <span className="meta-label">Decompressed</span>
-                            <span className="meta-value">{formatBytes(inspectData.sng_info.actual_decompressed || 0)}</span>
+                            <span className="meta-value">{formatBytes(inspectData.c_struct_info.actual_decompressed || 0)}</span>
                           </div>
-                          {inspectData.sng_info.hex_preview && (
+                          {inspectData.c_struct_info.hex_preview && (
                             <>
                               <h4>Decompressed Hex (first 256 bytes)</h4>
-                              <pre className="hex-viewer">{hexDump(inspectData.sng_info.hex_preview)}</pre>
+                              <pre className="hex-viewer">{hexDump(inspectData.c_struct_info.hex_preview)}</pre>
                             </>
                           )}
                         </>
@@ -537,7 +537,7 @@ function App() {
               </div>
               <div className="input-group">
                 <label>New Zlib Key</label>
-                <input type="text" value={newSngKey} onChange={e => setNewSngKey(e.target.value)}
+                <input type="text" value={newCStructKey} onChange={e => setNewSngKey(e.target.value)}
                        placeholder="32-byte hex or any string" />
               </div>
             </div>

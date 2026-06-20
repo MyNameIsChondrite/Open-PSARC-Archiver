@@ -30,7 +30,7 @@ def cmd_list(filepath: str, key: str, iv: str):
                 "name": filename,
                 "size": entry["length"],
                 "ext": ext,
-                "is_zlib": ext in (".sng", ".json", ".xml", ".hsan", ".manifest"),
+                "is_zlib": ext in (".c_struct", ".json", ".xml", ".hsan", ".manifest"),
             })
 
         print(json.dumps({"type": "file_list", "files": file_list, "archive": filepath}))
@@ -38,7 +38,7 @@ def cmd_list(filepath: str, key: str, iv: str):
         print(json.dumps({"type": "error", "message": str(e)}))
 
 
-def cmd_inspect(filepath: str, entry_name: str, key: str, iv: str, sng_key: str = ""):
+def cmd_inspect(filepath: str, entry_name: str, key: str, iv: str, c_struct_key: str = ""):
     """Extract and inspect a single file from a PSARC."""
     psarc.ARC_KEY = bytes.fromhex(key) if key else b""
     psarc.ARC_IV = bytes.fromhex(iv) if iv else b""
@@ -61,8 +61,8 @@ def cmd_inspect(filepath: str, entry_name: str, key: str, iv: str, sng_key: str 
             "hex_preview": data[:256].hex(),
             "is_text": False,
             "text_content": "",
-            "is_sng": ext == ".sng",
-            "sng_info": None,
+            "is_c_struct": ext == ".c_struct",
+            "c_struct_info": None,
         }
 
         # Try to decode as text
@@ -74,25 +74,25 @@ def cmd_inspect(filepath: str, entry_name: str, key: str, iv: str, sng_key: str 
             except Exception:
                 pass
 
-        # Deep inspect .sng files (AES-CTR encrypted zlib payloads)
-        if ext == ".sng" and sng_key and len(data) > 80:
+        # Deep inspect .c_struct files (AES-CTR encrypted zlib payloads)
+        if ext == ".c_struct" and c_struct_key and len(data) > 80:
             try:
                 from Crypto.Cipher import AES as AES_Mod
                 from Crypto.Util import Counter
 
-                sng_key_bytes = bytes.fromhex(sng_key)
+                c_struct_key_bytes = bytes.fromhex(c_struct_key)
                 iv_bytes = data[8:24]
                 encrypted = data[24:-56]
 
                 ctr = Counter.new(128, initial_value=int.from_bytes(iv_bytes, "big"))
-                cipher = AES_Mod.new(sng_key_bytes, AES_Mod.MODE_CTR, counter=ctr)
+                cipher = AES_Mod.new(c_struct_key_bytes, AES_Mod.MODE_CTR, counter=ctr)
                 decrypted = cipher.decrypt(encrypted)
 
                 # First 4 bytes = uncompressed size, then zlib
                 uncomp_size = struct.unpack(">I", decrypted[:4])[0]
                 try:
                     decompressed = zlib.decompress(decrypted[4:])
-                    info["sng_info"] = {
+                    info["c_struct_info"] = {
                         "encrypted_size": len(encrypted),
                         "iv": iv_bytes.hex(),
                         "uncompressed_size": uncomp_size,
@@ -101,13 +101,13 @@ def cmd_inspect(filepath: str, entry_name: str, key: str, iv: str, sng_key: str 
                         "signature": data[-56:].hex(),
                     }
                 except zlib.error as ze:
-                    info["sng_info"] = {
+                    info["c_struct_info"] = {
                         "encrypted_size": len(encrypted),
                         "iv": iv_bytes.hex(),
                         "error": f"zlib decompression failed: {ze}",
                     }
             except Exception as e:
-                info["sng_info"] = {"error": str(e)}
+                info["c_struct_info"] = {"error": str(e)}
 
         print(json.dumps(info))
     except Exception as e:
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     if args.command == "list":
         cmd_list(args.file, args.key, args.iv)
     elif args.command == "inspect":
-        cmd_inspect(args.file, args.entry, args.key, args.iv, args.sng_key)
+        cmd_inspect(args.file, args.entry, args.key, args.iv, args.c_struct_key)
     elif args.command == "extract":
         cmd_extract(args.file, args.entry, args.key, args.iv, args.output)
     else:

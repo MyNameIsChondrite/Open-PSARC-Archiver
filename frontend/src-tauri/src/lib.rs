@@ -36,7 +36,7 @@ async fn inspect_entry(
     entry_name: String,
     key: String,
     iv: String,
-    sng_key: String,
+    c_struct_key: String,
 ) -> Result<String, String> {
     let output = Command::new("python")
         .arg(INSPECTOR_SCRIPT)
@@ -45,7 +45,7 @@ async fn inspect_entry(
         .arg("--entry").arg(&entry_name)
         .arg("--key").arg(&key)
         .arg("--iv").arg(&iv)
-        .arg("--sng-key").arg(&sng_key)
+        .arg("--sng-key").arg(&c_struct_key)
         .output()
         .map_err(|e| format!("Failed to run inspector: {}", e))?;
 
@@ -66,8 +66,8 @@ async fn run_repacker(
     old_psarc_iv: String,
     new_psarc_key: String,
     new_psarc_iv: String,
-    old_sng_key: String,
-    new_sng_key: String,
+    old_c_struct_key: String,
+    new_c_struct_key: String,
     overwrite: bool,
 ) -> Result<(), String> {
     let mut cmd = Command::new("python");
@@ -78,8 +78,8 @@ async fn run_repacker(
         .arg("--old-psarc-iv").arg(&old_psarc_iv)
         .arg("--new-psarc-key").arg(&new_psarc_key)
         .arg("--new-psarc-iv").arg(&new_psarc_iv)
-        .arg("--old-sng-key").arg(&old_sng_key)
-        .arg("--new-sng-key").arg(&new_sng_key);
+        .arg("--old-sng-key").arg(&old_c_struct_key)
+        .arg("--new-sng-key").arg(&new_c_struct_key);
         
     if overwrite {
         cmd.arg("--overwrite");

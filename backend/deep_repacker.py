@@ -33,7 +33,7 @@ def derive_key(input_str: str, required_length: int) -> bytes:
     h = hashlib.sha256(input_str.encode('utf-8')).digest()
     return h[:required_length]
 
-def process_sng(data: bytes, old_key: bytes, new_key: bytes, new_iv: bytes) -> bytes:
+def process_c_struct(data: bytes, old_key: bytes, new_key: bytes, new_iv: bytes) -> bytes:
     if AES is None:
         raise RuntimeError("pycryptodome not installed")
     
@@ -67,18 +67,18 @@ def process_sng(data: bytes, old_key: bytes, new_key: bytes, new_iv: bytes) -> b
     
     return magic + version + new_iv + new_encrypted_payload + old_signature
 
-def repack_psarc_deep(input_dir: str, output_dir: str, old_psarc_key: str, old_psarc_iv: str, new_psarc_key: str, new_psarc_iv: str, old_sng_key: str, new_sng_key: str, overwrite: bool):
+def repack_psarc_deep(input_dir: str, output_dir: str, old_psarc_key: str, old_psarc_iv: str, new_psarc_key: str, new_psarc_iv: str, old_c_struct_key: str, new_c_struct_key: str, overwrite: bool):
     input_path = Path(input_dir)
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     old_pk = bytes.fromhex(old_psarc_key)
     old_piv = bytes.fromhex(old_psarc_iv)
-    old_sk = bytes.fromhex(old_sng_key)
+    old_sk = bytes.fromhex(old_c_struct_key)
     
     new_pk = derive_key(new_psarc_key, 32)
     new_piv = derive_key(new_psarc_iv, 16)
-    new_sk = derive_key(new_sng_key, 32)
+    new_sk = derive_key(new_c_struct_key, 32)
 
     if input_path.is_file():
         psarc_files = [input_path]
@@ -114,19 +114,19 @@ def repack_psarc_deep(input_dir: str, output_dir: str, old_psarc_key: str, old_p
                 continue
 
             # DEEP REPACK SNGs
-            sng_count = 0
-            for f in temp_path.rglob("*.sng"):
+            c_struct_count = 0
+            for f in temp_path.rglob("*.c_struct"):
                 try:
                     data = f.read_bytes()
                     # Generate a unique random IV for each SNG file
-                    unique_sng_iv = secrets.token_bytes(16)
-                    new_data = process_sng(data, old_sk, new_sk, unique_sng_iv)
+                    unique_c_struct_iv = secrets.token_bytes(16)
+                    new_data = process_c_struct(data, old_sk, new_sk, unique_c_struct_iv)
                     f.write_bytes(new_data)
-                    sng_count += 1
+                    c_struct_count += 1
                 except Exception as e:
                     print(json.dumps({"type": "log", "message": f"Error processing SNG {f.name}: {e}"}))
             
-            print(json.dumps({"type": "log", "message": f"  Converted {sng_count} inner .sng files."}))
+            print(json.dumps({"type": "log", "message": f"  Converted {c_struct_count} inner .c_struct files."}))
 
             # REPACK PSARC
             patcher.ARC_KEY = new_pk
@@ -164,8 +164,8 @@ if __name__ == "__main__":
             old_psarc_iv=args.old_psarc_iv,
             new_psarc_key=args.new_psarc_key,
             new_psarc_iv=args.new_psarc_iv,
-            old_sng_key=args.old_sng_key,
-            new_sng_key=args.new_sng_key,
+            old_c_struct_key=args.old_c_struct_key,
+            new_c_struct_key=args.new_c_struct_key,
             overwrite=args.overwrite
         )
     except Exception as e:

@@ -1,4 +1,4 @@
-"""PSARC file extractor for Rocksmith 2014."""
+"""PSARC file extractor for Target Game."""
 
 import fnmatch
 import struct

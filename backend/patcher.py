@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Rocksmith 2014 CDLC App ID Patcher
+Target Game CDLC App ID Patcher
 
 Unpacks a .psarc file, replaces the App ID in manifests and appid file,
-then repacks it. Copies the result to the Rocksmith dlc folder.
+then repacks it. Copies the result to the Target Game dlc folder.
 
 Usage:
     python patcher.py <input.psarc> [--appid 258350] [--no-copy]
@@ -30,13 +30,13 @@ MAGIC = b"PSAR"
 BLOCK_SIZE = 65536
 ENTRY_SIZE = 30
 
-# Rocksmith PSARC encryption key (for TOC only)
+# Target Game PSARC encryption key (for TOC only)
 # Set these at runtime before packing
 ARC_KEY: bytes = b""
 ARC_IV: bytes = b""
 
 # Default paths
-DLC_DIR = Path.home() / ".local/share/Steam/steamapps/common/Rocksmith2014/dlc"
+DLC_DIR = Path.home() / ".local/share/Steam/steamapps/common/TargetGame/dlc"
 DEFAULT_APP_ID = "258350"  # Iron Maiden - Aces High
 
 # Common CDLC App IDs that need replacing
@@ -307,12 +307,12 @@ def patch_psarc(input_path, new_app_id, output_dir=None, copy_to_dlc=True):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Rocksmith 2014 CDLC App ID Patcher')
+    parser = argparse.ArgumentParser(description='Target Game CDLC App ID Patcher')
     parser.add_argument('files', nargs='+', help='Input .psarc files (supports globs)')
     parser.add_argument('--appid', default=DEFAULT_APP_ID,
                         help=f'Target App ID (default: {DEFAULT_APP_ID} = Iron Maiden - Aces High)')
     parser.add_argument('--no-copy', action='store_true',
-                        help='Do not copy to Rocksmith dlc folder')
+                        help='Do not copy to Target Game dlc folder')
     parser.add_argument('--output', '-o', help='Output directory (instead of dlc folder)')
 
     args = parser.parse_args()

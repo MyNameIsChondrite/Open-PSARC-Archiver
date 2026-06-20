@@ -269,8 +269,8 @@ body {
 .inspect-section h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; }
 .inspect-section h4 { font-size: 0.8rem; font-weight: 500; margin: 0.75rem 0 0.5rem; color: var(--text-muted); }
 
-.sng-section { border-color: rgba(139, 92, 246, 0.3); }
-.sng-error { color: var(--danger); font-size: 0.85rem; }
+.c_struct-section { border-color: rgba(139, 92, 246, 0.3); }
+.c_struct-error { color: var(--danger); font-size: 0.85rem; }
 
 .text-viewer, .hex-viewer {
   background: #020617;
